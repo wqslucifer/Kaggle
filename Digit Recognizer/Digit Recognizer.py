@@ -24,12 +24,13 @@ test_data_row, test_data_col = test_data.shape
 # fix dirty data
 # pre-processing data like feature scaling and mean normalization
 
-X = train_data.iloc[:200, 1:]
-y = train_data.iloc[:200, 0]
+X = train_data.iloc[:30000, 1:]
+y = train_data.iloc[:30000, 0]
 classifiers = []
 
-CV_x = np.array(test_data)[1:]
-
+test_set = np.array(test_data)
+CV_x = np.array(train_data.iloc[30001:30021, 1:])
+CV_y = np.array(train_data.iloc[30001:30021, 0])
 #############################################################################################
 '''define function for main code'''
 
@@ -59,18 +60,25 @@ for label in sorted(np.unique(y)):  # np.unique find the what is in y and pick o
 X = np.array(X)
 predict_row = []
 print("predicting...")
-for test_x in CV_x:
+for test_x in test_set:
     predict_col = []
     for classifier in classifiers:
         # each column == result for each label
-        predict_col.append(classifier.predict(test_x))  # the predict results of one test data for each label
+        predict_col.append(classifier.predict(test_x)[0])  # the predict results of one test data for each label
     predict_row.append(predict_col)  # collect the predict results as a row
 
-print("printing results")
+print("printing results...")
 predict_list = np.array(predict_row)
+print(predict_list.shape)
 #  return the index of the maximum number in each row
 predict_results = predict_list.argmax(axis=1)  # the length of results should be the length of test_data
-print(predict_results.shape)
+
+print("saving submit file...")
+pd.DataFrame({"ImageId": range(1, len(predict_results) + 1), "Label": predict_results}).to_csv(
+    'F:\ML\kaggle\Digit Recognizer\submit_LogisticRegression.csv', index=False, header=True)
+
+#accuracy = sum((predict_results == CV_y).astype(int)) / CV_y.shape[0]
+#print(accuracy)
+
 
 #############################################################################################
-
