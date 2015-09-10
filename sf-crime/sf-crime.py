@@ -3,17 +3,19 @@ __author__ = 'qiushi'
 import numpy as np
 import pandas as pd
 from sklearn import preprocessing
-from sklearn.feature_extraction import DictVectorizer
 import matplotlib.pyplot as plt
-
+from sklearn.ensemble import RandomForestClassifier
 
 # load data
+print("loading data...")
 train_data = pd.read_csv("C:\\Users\\qiushi\OneDrive\kaggle\sf-crime\\train.csv")
 test_data = pd.read_csv("C:\\Users\\qiushi\OneDrive\kaggle\sf-crime\\test.csv")
 
 
 def transform_date(train):
     # separate the date to year, month, date and time in int
+    train.DayOfWeek = pd.Categorical.from_array(train['DayOfWeek']).codes
+    train.PdDistrict = pd.Categorical.from_array(train['PdDistrict']).codes
     df_date_time = train.Dates.str.split(' ')
     df_date = df_date_time.apply(lambda x: x[0])
     df_time = df_date_time.apply(lambda x: x[1])
@@ -32,7 +34,6 @@ def transform_date(train):
     date_int = pd.DataFrame({'Year': df_year_int, 'Month': df_month_int,
                              'Date': df_date_int, 'Time': time_int})
     train = date_int.join(train.drop('Dates', axis=1), how='outer')
-
     # separate address into category
     # train.Address.apply(lambda x: x.split('/') if '/' in x else x.split('of'))
 
@@ -41,18 +42,21 @@ def transform_date(train):
 
 # main code
 # Recode categories to numerical
+print("transform data into proper type...")
 train_data.Category = pd.Categorical.from_array(train_data['Category']).codes
-train_data.DayOfWeek = pd.Categorical.from_array(train_data['DayOfWeek']).codes
-train_data.PdDistrict = pd.Categorical.from_array(train_data['PdDistrict']).codes
 X = transform_date(train_data)
-Y = X.Category
+y = X.Category
 X = X.drop(['Descript', 'Resolution', 'Address', 'Category'], axis=1)
-
-print(X[:10])
-print(Y[:10])
+print("data transformation completed")
 
 # fit the model
+print("fitting...")
+rf = RandomForestClassifier(n_estimators=50)
+rf.fit(X, y)
+print("finished")
 
 # make prediction
-
+'''
+test_data = transform_date(test_data)
+predict = rf.predict(test_data)'''
 # write into CSV
