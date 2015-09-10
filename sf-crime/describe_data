@@ -23,3 +23,49 @@ train.csv
  $ X         : num  -122 -122 -122 -122 -122 ...
  $ Y         : num  37.8 37.8 37.8 37.8 37.8 ...
 '''
+DATA MAPPING LIST
+#---------------------------------------------------------------------------------------------#
+train$Category
+
+ARSON                   0
+ASSAULT                 1
+BAD CHECKS              2
+BRIBERY                 3
+BURGLARY                4
+DISORDERLY              5
+CONDUCT                 6
+DRIVING                 7
+UNDER                   8
+THE INFLUENCE           9
+DRUG/NARCOTIC           10
+DRUNKENNESS             11
+EMBEZZLEMENT            12
+EXTORTION               13
+FAMILY OFFENSES         14
+FORGERY/COUNTERFEITING  15
+FRAUD                   16
+GAMBLING                17
+KIDNAPPING              18
+LARCENY/THEFT   18
+LIQUOR LAWS     19
+LOITERING       20
+MISSING PERSON  21
+NON-CRIMINAL    22
+OTHER OFFENSES  23
+PORNOGRAPHY/OBSCENE MAT 24
+PROSTITUTION     25
+RECOVERED VEHICLE       26
+ROBBERY     27
+RUNAWAY     28
+SECONDARY CODES 29
+SEX OFFENSES FORCIBLE   30
+SEX OFFENSES NON FORCIBLE   31
+STOLEN PROPERTY 32
+SUICIDE     33
+SUSPICIOUS OCC  34
+TREA        35
+TRESPASS    36
+VANDALISM   37
+VEHICLE THEFT   38
+WARRANTS    39
+WEAPON LAWS 40
