@@ -34,7 +34,7 @@ def transform_date(train):
     train = date_int.join(train.drop('Dates', axis=1), how='outer')
 
     # separate address into category
-    train.Address.apply(lambda x: x.split('/') if '/' in x else x.split('of'))
+    # train.Address.apply(lambda x: x.split('/') if '/' in x else x.split('of'))
 
     return train
 
@@ -44,10 +44,9 @@ train_data.Category = pd.Categorical.from_array(train_data['Category']).codes
 train_data.DayOfWeek = pd.Categorical.from_array(train_data['DayOfWeek']).codes
 train_data.PdDistrict = pd.Categorical.from_array(train_data['PdDistrict']).codes
 X = transform_date(train_data)
+Y = X.Category
+X = X.drop(['Descript', 'Resolution', 'Address', 'Category'], axis=1)
+
 print(X[:10])
-'''
-vectorizer = DictVectorizer(sparse=False)
-vec_train = vectorizer.fit_transform(category_dict)
-print(vec_train)
-test = vectorizer.transform("OTHER OFFENSES")
-'''
+print(Y[:10])
+
