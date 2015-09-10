@@ -39,6 +39,7 @@ def transform_date(train):
     return train
 
 
+# main code
 # Recode categories to numerical
 train_data.Category = pd.Categorical.from_array(train_data['Category']).codes
 train_data.DayOfWeek = pd.Categorical.from_array(train_data['DayOfWeek']).codes
@@ -50,3 +51,8 @@ X = X.drop(['Descript', 'Resolution', 'Address', 'Category'], axis=1)
 print(X[:10])
 print(Y[:10])
 
+# fit the model
+
+# make prediction
+
+# write into CSV
