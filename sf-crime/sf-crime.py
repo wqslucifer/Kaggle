@@ -11,6 +11,11 @@ print("loading data...")
 train_data = pd.read_csv("C:\\Users\\qiushi\OneDrive\kaggle\sf-crime\\train.csv")
 test_data = pd.read_csv("C:\\Users\\qiushi\OneDrive\kaggle\sf-crime\\test.csv")
 
+'''
+train_data = train_data[:20]
+test_data = test_data[:20]
+'''
+
 
 def transform_date(train):
     # separate the date to year, month, date and time in int
@@ -43,7 +48,9 @@ def transform_date(train):
 # main code
 # Recode categories to numerical
 print("transform data into proper type...")
+category_train = pd.Categorical.from_array(train_data['Category']).categories
 train_data.Category = pd.Categorical.from_array(train_data['Category']).codes
+
 X = transform_date(train_data)
 y = X.Category
 X = X.drop(['Descript', 'Resolution', 'Address', 'Category'], axis=1)
@@ -51,12 +58,20 @@ print("data transformation completed")
 
 # fit the model
 print("fitting...")
-rf = RandomForestClassifier(n_estimators=50)
+rf = RandomForestClassifier(n_estimators=10)
 rf.fit(X, y)
-print("finished")
 
 # make prediction
-'''
+print("transform test_data")
 test_data = transform_date(test_data)
-predict = rf.predict(test_data)'''
+test_data = test_data.drop(['Address', 'Id'], axis=1)
+print("predicting...")
+predict = rf.predict(test_data)
+predict_str = pd.Categorical.from_codes(predict, category_train)
+print("finished")
+
 # write into CSV
+predict_str = pd.Series(predict_str[:20])
+result = pd.DataFrame(predict_str.apply(lambda x: (x == category_train).astype(int)))
+print(category_train);
+result[:20].to_csv("C:\\Users\qiushi\OneDrive\kaggle\\sf-crime\\submit.csv", index=False, header=category_train)
