@@ -4,8 +4,44 @@ import pandas as pd
 from sklearn.cross_validation import train_test_split
 from sklearn.svm import SVR
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.preprocessing import normalize
+from sklearn.preprocessing import Imputer
 import numpy as np
+
+'''
+train_set: original dataset
+train_data: training dataset, X
+train_label: training label set, y
+cv_data: cross validation dataset, cv_x
+cv_label: cross validation label set, cv_y
+
+test_data: test dataset, test_X
+result: result set with id
+'''
+
+
+# transfer date to year month and date in integer
+# data_set: source data set
+# date_index_name: the index name of date in datasets
+# split_x: the character to split date
+# default format of date: year/month/day
+# this will delete original date in the dataset, and return a new dataset
+def trains_date(data_set, date_index_name, split_c):
+    s_date = data_set[date_index_name].str.split(split_c)
+    int_year = s_date.apply(lambda x: int(x[0]))
+    int_month = s_date.apply(lambda x: int(x[1]))
+    int_day = s_date.apply(lambda x: int(x[2]))
+    int_df_date = pd.DataFrame({'year': int_year, 'Month': int_month, 'Day': int_day})
+    data_set = int_df_date.join(data_set, how='outer').drop([date_index_name], axis=1)
+    return data_set
+
+
+# convert category to code
+def encode_category(data_set, index_list):
+    category_list = pd.DataFrame()
+    for index in index_list:
+        data_set[index] = pd.Categorical.from_array(data_set[index]).codes
+    return data_set
+
 
 print("loading data...")
 train_set = pd.read_csv("C:/Users/qiushi/OneDrive/kaggle/Rossmann Store Sales/train.csv")
@@ -16,27 +52,31 @@ print("processing data...")
 train_set = pd.DataFrame(train_set).merge(store_info)
 test_set = pd.DataFrame(test_set).merge(store_info)
 train_set = train_set[train_set['Open'] == 1]
-
+# category index
+index_list = ['StoreType', 'Promo', 'Assortment']
+# fillna index
+fillna_list = ['DayOfWeek', 'Promo', 'Date', 'StoreType', 'Assortment', 'CompetitionDistance',
+               'CompetitionOpenSinceYear', 'CompetitionOpenSinceMonth']
 # select features
-train_data = pd.concat([train_set['DayOfWeek'], train_set['Promo'],
-                        train_set['StoreType'], train_set['Assortment']], axis=1,
-                       keys=['DayOfWeek', 'Promo', 'StoreType', 'Assortment'])
-# transfer date to year month and date
-date = train_set.Date.str.split('-')
-year = date.apply(lambda x: int(x[0]))
-month = date.apply(lambda x: int(x[1]))
-day = date.apply(lambda x: int(x[2]))
-df_date = pd.DataFrame({'year': year, 'Month': month, 'Date': day})
-train_data = df_date.join(train_data, how='outer')
 
+train_data = pd.concat([train_set['DayOfWeek'], train_set['Promo'], train_set['Date'],
+                        train_set['StoreType'], train_set['Assortment'], train_set['CompetitionDistance'],
+                        train_set['CompetitionOpenSinceYear'], train_set['CompetitionOpenSinceMonth'],
+                        ], axis=1,
+                       keys=['DayOfWeek', 'Promo', 'Date',
+                             'StoreType', 'Assortment', 'CompetitionDistance', 'CompetitionOpenSinceYear',
+                             'CompetitionOpenSinceMonth'])
+
+# train_data = train_set
+# train_data.drop(['Sales', 'Customers', 'Open'])
 train_label = train_set['Sales']
-train_customers = train_set['Customers']
-# convert category to code
-train_data.Promo = pd.Categorical.from_array(train_data['Promo']).codes
-train_data.StoreType = pd.Categorical.from_array(train_data['StoreType']).codes
-train_data.Assortment = pd.Categorical.from_array(train_data['Assortment']).codes
-# train_data.CompetitionOpenSinceYear.fillna(0)
-# train_data.CompetitionOpenSinceYear = pd.Categorical.from_array(train_data['CompetitionOpenSinceYear']).codes
+
+# split and transfer date to integer
+train_data = trains_date(train_data, 'Date', '-')
+# transfer category
+train_data = encode_category(train_data, index_list)
+# fill nan with 0
+train_data = train_data.fillna(0)
 
 # separate data to train and CV
 # X, cv_x, Y, cv_y = train_test_split(train_data, train_label, test_size=0.30, random_state=85)
@@ -46,36 +86,29 @@ Y = train_label
 # build model
 print('building model...')
 print('random forest..')
-rfr = RandomForestRegressor(n_estimators=70)
+rfr = RandomForestRegressor(n_estimators=50)
 rfr.fit(X, Y)
 # rfr_score = rfr.score(cv_x, cv_y)
 # print('rfr score:', rfr_score)
+importance = rfr.feature_importances_
 
 print('finished')
 
 # predicting
 print('precessing test data...')
-test_data = pd.concat([test_set['DayOfWeek'], test_set['Promo'], test_set['Id'], test_set['Open'],
-                       test_set['StoreType'], test_set['Assortment'],
-                       test_set['CompetitionOpenSinceYear']], axis=1,
-                      keys=['DayOfWeek', 'Promo', 'Id', 'Open',
-                            'StoreType', 'Assortment'])
+test_data = pd.concat([test_set['DayOfWeek'], test_set['Promo'], test_set['Date'], test_set['Id'], test_set['Open'],
+                       test_set['StoreType'], test_set['Assortment'], test_set['CompetitionDistance'],
+                       test_set['CompetitionOpenSinceYear'], test_set['CompetitionOpenSinceMonth'],
+                       ], axis=1,
+                      keys=['DayOfWeek', 'Promo', 'Date', 'Id', 'Open',
+                            'StoreType', 'Assortment', 'CompetitionDistance', 'CompetitionOpenSinceYear',
+                            'CompetitionOpenSinceMonth'])
 # transfer date to year month and date
-
-
+test_data = trains_date(test_data, 'Date', '-')
 # convert category to code
-test_data.Promo = pd.Categorical.from_array(test_set['Promo']).codes
-test_data.StoreType = pd.Categorical.from_array(test_set['StoreType']).codes
-test_data.Assortment = pd.Categorical.from_array(test_set['Assortment']).codes
-# test_data.CompetitionOpenSinceYear = test_data.CompetitionOpenSinceYear.fillna(0)
-# test_data.CompetitionOpenSinceYear = pd.Categorical.from_array(test_set['CompetitionOpenSinceYear']).codes
-# transfer date to year month and date
-date = test_set.Date.str.split('-')
-year = date.apply(lambda x: int(x[0]))
-month = date.apply(lambda x: int(x[1]))
-day = date.apply(lambda x: int(x[2]))
-df_date = pd.DataFrame({'year': year, 'Month': month, 'Date': day})
-test_data = df_date.join(test_data, how='outer')
+test_data = encode_category(test_data, index_list)
+# fill na with 0
+test_data = test_data.fillna(0)
 
 print('predicting...')
 result = pd.DataFrame({"Id": test_data.Id, "Sales": 0, "Open": test_data.Open})
