@@ -2,9 +2,7 @@ __author__ = 'qiushi'
 
 import pandas as pd
 from sklearn.cross_validation import train_test_split
-from sklearn.svm import SVR
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.preprocessing import Imputer
 import numpy as np
 
 '''
@@ -53,30 +51,33 @@ train_set = pd.DataFrame(train_set).merge(store_info)
 test_set = pd.DataFrame(test_set).merge(store_info)
 train_set = train_set[train_set['Open'] == 1]
 # category index
-index_list = ['StoreType', 'Promo', 'Assortment']
-# fillna index
-fillna_list = ['DayOfWeek', 'Promo', 'Date', 'StoreType', 'Assortment', 'CompetitionDistance',
-               'CompetitionOpenSinceYear', 'CompetitionOpenSinceMonth']
+index_list = ['StoreType', 'Promo', 'Assortment', 'PromoInterval']
+
 # select features
 
 train_data = pd.concat([train_set['DayOfWeek'], train_set['Promo'], train_set['Date'],
                         train_set['StoreType'], train_set['Assortment'], train_set['CompetitionDistance'],
                         train_set['CompetitionOpenSinceYear'], train_set['CompetitionOpenSinceMonth'],
+                        train_set['SchoolHoliday'], train_set['Promo2'], train_set['Promo2SinceWeek'],
+                        train_set['Promo2SinceYear'], train_set['PromoInterval']
                         ], axis=1,
                        keys=['DayOfWeek', 'Promo', 'Date',
-                             'StoreType', 'Assortment', 'CompetitionDistance', 'CompetitionOpenSinceYear',
-                             'CompetitionOpenSinceMonth'])
+                             'StoreType', 'Assortment', 'CompetitionDistance',
+                             'CompetitionOpenSinceYear', 'CompetitionOpenSinceMonth',
+                             'SchoolHoliday',
+                             'Promo2', 'Promo2SinceWeek', 'Promo2SinceYear', 'PromoInterval'])
 
 # train_data = train_set
-# train_data.drop(['Sales', 'Customers', 'Open'])
+# train_data = train_data.drop(['Sales', 'Customers', 'Open'], axis=1)
 train_label = train_set['Sales']
 
+# fill nan with 0
+train_data = train_data.fillna(0)
 # split and transfer date to integer
 train_data = trains_date(train_data, 'Date', '-')
 # transfer category
 train_data = encode_category(train_data, index_list)
-# fill nan with 0
-train_data = train_data.fillna(0)
+
 
 # separate data to train and CV
 # X, cv_x, Y, cv_y = train_test_split(train_data, train_label, test_size=0.30, random_state=85)
@@ -86,29 +87,38 @@ Y = train_label
 # build model
 print('building model...')
 print('random forest..')
-rfr = RandomForestRegressor(n_estimators=50)
+rfr = RandomForestRegressor(n_estimators=60, random_state=30)
 rfr.fit(X, Y)
 # rfr_score = rfr.score(cv_x, cv_y)
 # print('rfr score:', rfr_score)
+
 importance = rfr.feature_importances_
 
 print('finished')
+print('importance', importance)
 
 # predicting
 print('precessing test data...')
+
 test_data = pd.concat([test_set['DayOfWeek'], test_set['Promo'], test_set['Date'], test_set['Id'], test_set['Open'],
                        test_set['StoreType'], test_set['Assortment'], test_set['CompetitionDistance'],
                        test_set['CompetitionOpenSinceYear'], test_set['CompetitionOpenSinceMonth'],
+                       test_set['SchoolHoliday'], test_set['Promo2'], test_set['Promo2SinceWeek'],
+                       test_set['Promo2SinceYear'], test_set['PromoInterval']
                        ], axis=1,
                       keys=['DayOfWeek', 'Promo', 'Date', 'Id', 'Open',
-                            'StoreType', 'Assortment', 'CompetitionDistance', 'CompetitionOpenSinceYear',
-                            'CompetitionOpenSinceMonth'])
+                            'StoreType', 'Assortment', 'CompetitionDistance',
+                            'CompetitionOpenSinceYear', 'CompetitionOpenSinceMonth',
+                            'SchoolHoliday',
+                            'Promo2', 'Promo2SinceWeek', 'Promo2SinceYear', 'PromoInterval'])
+
+# test_data = test_data.drop(['Promo2', 'Promo2SinceWeek', 'Promo2SinceYear', 'PromoInterval'], asix=1)
+# fill na with 0
+test_data = test_data.fillna(0)
 # transfer date to year month and date
 test_data = trains_date(test_data, 'Date', '-')
 # convert category to code
 test_data = encode_category(test_data, index_list)
-# fill na with 0
-test_data = test_data.fillna(0)
 
 print('predicting...')
 result = pd.DataFrame({"Id": test_data.Id, "Sales": 0, "Open": test_data.Open})
