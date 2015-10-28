@@ -1,6 +1,7 @@
 __author__ = 'qiushi'
 
-import pandas as pd;
+import pandas as pd
+import numpy as np
 import pickle
 
 from sklearn.cross_validation import train_test_split
@@ -55,6 +56,9 @@ print("processing data...")
 train_set = pd.DataFrame(train_set).merge(store_info)
 test_set = pd.DataFrame(test_set).merge(store_info)
 train_set = train_set[train_set['Open'] == 1]
+
+train_set = pd.DataFrame(train_set).sample(5000)
+
 # category index
 index_list = ['StoreType', 'Promo', 'Assortment', 'PromoInterval']
 
@@ -80,6 +84,7 @@ train_data = encode_category(train_data, index_list)
 
 
 # X, cv_x, Y, cv_y = train_test_split(train_data, train_label, test_size=0.30, random_state=85)
+
 X = train_data
 Y = train_label
 
@@ -96,7 +101,7 @@ ds.setField('target', Y)
 
 print("building network")
 # build network
-hidden_size = 100
+hidden_size = 30
 epochs = 200
 continue_epochs = 10
 validation_proportion = 0.20
@@ -108,10 +113,9 @@ print("training...")
 # train with cv
 # bp.trainUntilConvergence(verbose=True, validationProportion=0.20, maxEpochs=1000, continueEpochs=10)
 
-train_mse, validation_mse = bp.trainUntilConvergence(verbose=True, validationProportion=validation_proportion,
-                                                     maxEpochs=epochs, continueEpochs=continue_epochs)
+# train_mse, validation_mse = bp.trainUntilConvergence(verbose=True, validationProportion=validation_proportion,
+#                                                     maxEpochs=epochs, continueEpochs=continue_epochs)
 
-# pickle.dump(nn, open('model_val.pkl', 'wb'))
-print("output")
-for i, j in zip(train_mse, validation_mse):
-    print("train_mse", i, "\tvalidation", j)
+for i in range(1000):
+    train_mse = bp.train()
+    print("train_mse:", train_mse)
