@@ -156,7 +156,7 @@ params = {"objective": "reg:linear",
 
           "silent": 1
           }
-num_trees = 600
+num_trees = 3000
 
 d_train = xgb.DMatrix(X.values, label=np.log(Y + 1))
 d_cv = xgb.DMatrix(cv_x.values, label=np.log(cv_y + 1))
@@ -176,7 +176,8 @@ print('predicting...')
 print('xgboost...')
 
 result = pd.DataFrame({"Id": test_data.Id, "Sales": 0, "Open": test_data.Open})
-result.loc[test_data['Open'] == 1, 'Sales'] = [np.exp(x) - 1 for x in gbm.predict(xgb.DMatrix(test_data.values))]
-
+result.loc[result['Open'] == 1, 'Sales'] = [np.exp(x) - 1 for x in gbm.predict(xgb.DMatrix(test_data.values))]
+result = result.drop("Open", axis=1)
 print('writing to csv...')
-result.to_csv("C:\\Users\\qiushi\\OneDrive\\kaggle\\Rossmann Store Sales\\xgboost_submit.csv", index=False)
+result.to_csv("C:\\Users\\qiushi\\OneDrive\\kaggle\\Rossmann Store Sales\\xgboost_submit.csv",
+              index=False)
