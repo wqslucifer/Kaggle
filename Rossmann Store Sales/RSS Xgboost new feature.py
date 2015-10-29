@@ -84,7 +84,9 @@ def add_open_feature(data_set):
 
 print("loading data...")
 train_set = pd.read_csv("C:/Users/qiushi/OneDrive/kaggle/Rossmann Store Sales/train.csv")
+train_set = add_open_feature(train_set)
 test_set = pd.read_csv("C:/Users/qiushi/OneDrive/kaggle/Rossmann Store Sales/test.csv")
+test_set = add_open_feature(test_set)
 store_info = pd.read_csv("C:/Users/qiushi/OneDrive/kaggle/Rossmann Store Sales/store.csv")
 
 print("processing data...")
@@ -92,92 +94,67 @@ print("train set")
 train_set = pd.DataFrame(train_set).merge(store_info)
 test_set = pd.DataFrame(test_set).merge(store_info)
 
-# add new feature: if the store closed yesterday
-train_set = add_open_feature(train_set)
-# train_set.to_csv("C:/Users/qiushi/OneDrive/kaggle/Rossmann Store Sales/train_with_new_feature.csv")
-train_set = train_set[train_set['Open'] == 1]
 # category index
 index_list = ['StoreType', 'Promo', 'Assortment', 'PromoInterval']
 
-print("select features")
-# select features
-train_data = pd.concat([train_set['DayOfWeek'], train_set['Promo'], train_set['Date'],
-                        train_set['StoreType'], train_set['Assortment'], train_set['CompetitionDistance'],
-                        train_set['CompetitionOpenSinceYear'], train_set['CompetitionOpenSinceMonth'],
-                        train_set['SchoolHoliday'], train_set['Promo2'], train_set['Promo2SinceWeek'],
-                        train_set['Promo2SinceYear'], train_set['PromoInterval'], train_set['close_days'],
-                        train_set['Store']
-                        ], axis=1,
-                       keys=['DayOfWeek', 'Promo', 'Date',
-                             'StoreType', 'Assortment', 'CompetitionDistance',
-                             'CompetitionOpenSinceYear', 'CompetitionOpenSinceMonth',
-                             'SchoolHoliday',
-                             'Promo2', 'Promo2SinceWeek', 'Promo2SinceYear', 'PromoInterval', 'close_days', 'Store'])
-train_label = train_set['Sales']
+# add new feature: if the store closed yesterday
+# train_set = add_open_feature(train_set)
+
+train_set = train_set[train_set['Open'] == 1]
 
 # fill nan with 0
-train_data = train_data.fillna(0)
+train_data = train_set.fillna(0)
 # split and transfer date to integer
 train_data = trains_date(train_data, 'Date', '-')
 # transfer category
 train_data = encode_category(train_data, index_list)
+features = ['DayOfWeek', 'Promo', 'year', 'Month', 'Day', 'StoreType', 'Assortment', 'CompetitionDistance',
+            'CompetitionOpenSinceYear', 'CompetitionOpenSinceMonth', 'SchoolHoliday', 'Promo2', 'Promo2SinceWeek',
+            'Promo2SinceYear', 'PromoInterval', 'Store', 'close_days']
 
-print("test set")
-test_set = add_open_feature(test_set)
-test_data = pd.concat([test_set['DayOfWeek'], test_set['Promo'], test_set['Date'], test_set['Id'], test_set['Open'],
-                       test_set['StoreType'], test_set['Assortment'], test_set['CompetitionDistance'],
-                       test_set['CompetitionOpenSinceYear'], test_set['CompetitionOpenSinceMonth'],
-                       test_set['SchoolHoliday'], test_set['Promo2'], test_set['Promo2SinceWeek'],
-                       test_set['Promo2SinceYear'], test_set['PromoInterval'], test_set['close_days'], test_set['Store']
-                       ], axis=1,
-                      keys=['DayOfWeek', 'Promo', 'Date', 'Id', 'Open',
-                            'StoreType', 'Assortment', 'CompetitionDistance',
-                            'CompetitionOpenSinceYear', 'CompetitionOpenSinceMonth',
-                            'SchoolHoliday',
-                            'Promo2', 'Promo2SinceWeek', 'Promo2SinceYear', 'PromoInterval', 'close_days', 'Store'])
-# fill na with 0
-test_data = test_data.fillna(0)
-# transfer date to year month and date
-test_data = trains_date(test_data, 'Date', '-')
-# convert category to code
-test_data = encode_category(test_data, index_list)
-
-X, cv_x, Y, cv_y = cross_validation.train_test_split(train_data, train_label, test_size=0.01, random_state=85)
+X, cv_x = cross_validation.train_test_split(train_data, test_size=0.1)
+Y = X["Sales"]
+cv_y = cv_x["Sales"]
 
 # build model
 print('building model...')
-
 print('xgboost..')
 params = {"objective": "reg:linear",
-          "eta": 0.25,
-          "max_depth": 9,
+          "eta": 0.2,
+          "max_depth": 10,
           "subsample": 0.9,
           "colsample_bytree": 0.7,
-
           "silent": 1
           }
 num_trees = 3000
 
-d_train = xgb.DMatrix(X.values, label=np.log(Y + 1))
-d_cv = xgb.DMatrix(cv_x.values, label=np.log(cv_y + 1))
+d_train = xgb.DMatrix(X[features].values, label=np.log(Y + 1))
+d_cv = xgb.DMatrix(cv_x[features].values, label=np.log(cv_y + 1))
 
 watchlist = [(d_cv, 'cv'), (d_train, 'train')]
 gbm = xgb.train(params, d_train, num_trees, evals=watchlist, early_stopping_rounds=50, feval=rmspe_xg,
                 verbose_eval=True)
 
 print("xgboost validating")
-train_prob = gbm.predict(xgb.DMatrix(cv_x.values))
+train_prob = gbm.predict(xgb.DMatrix(cv_x[features].values))
 indices = train_prob < 0
 train_prob[indices] = 0
 error = rmspe(np.exp(train_prob) - 1, cv_y)
 print('error', np.float(error))
 
 print('predicting...')
-print('xgboost...')
+# fill nan with 0
+test_data = test_set.fillna(0)
+# split and transfer date to integer
+test_data = trains_date(test_data, 'Date', '-')
+# transfer category
+test_data = encode_category(test_data, index_list)
 
 result = pd.DataFrame({"Id": test_data.Id, "Sales": 0, "Open": test_data.Open})
-result.loc[result['Open'] == 1, 'Sales'] = [np.exp(x) - 1 for x in gbm.predict(xgb.DMatrix(test_data.values))]
-result = result.drop("Open", axis=1)
+result.Sales = gbm.predict(xgb.DMatrix(test_data[features].values))
+result_y = result.apply(lambda x: 0 if x.Open == 0 else np.exp(x.Sales) - 1, axis=1)
+
 print('writing to csv...')
-result.to_csv("C:\\Users\\qiushi\\OneDrive\\kaggle\\Rossmann Store Sales\\xgboost_submit.csv",
-              index=False)
+pd.DataFrame({"Id": result.Id, "Sales": result_y}).to_csv(
+    "C:\\Users\\qiushi\\OneDrive\\kaggle\\Rossmann Store Sales\\xgboost_submit.csv",
+    index=False)
